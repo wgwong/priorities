@@ -60,7 +60,6 @@ export default function NewActivity() {
               size="lg"
               variant="light"
               radius="md"
-              disabled={pending}
             >
               {MinOrHour.map((value) => (
                 <Tab className="text-sm" key={value} title={value} />
