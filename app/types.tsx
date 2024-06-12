@@ -99,3 +99,21 @@ export type NewGoalConfigArguments = {
   excludedDays: DayOfWeekType[];
   tags: []; // todo
 };
+
+// nextUI Table
+export type TableHeaderType = {
+  key: string;
+  label: string;
+}[];
+
+export class Activity {
+  name: string;
+  description?: string;
+  minTimePerSession: HoursAndMin;
+
+  constructor({ name, description, minTimePerSession }: NewActivityArguments) {
+    this.name = name;
+    this.description = description;
+    this.minTimePerSession = minTimePerSession;
+  }
+}

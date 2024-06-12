@@ -1,5 +1,7 @@
 "use client";
 
+// https://github.com/vercel/next.js/issues/65673
+
 import { Key, useState } from "react";
 import {
   Button,
@@ -17,7 +19,6 @@ import { addNewActivity } from "./actions";
 import { useFormStatus } from "react-dom";
 
 export default function NewActivity() {
-  const { pending } = useFormStatus();
   const [minSessionTimeType, setMinSessionTimeType] =
     useState<ActivityMinSessionType>("minutes");
 
@@ -25,6 +26,15 @@ export default function NewActivity() {
     null,
     minSessionTimeType
   );
+
+  const isPending = useFormStatus();
+  /*
+  unavailable until nextjs v.14.3
+  const [formResponse, formAction, isPending] = useActionState(
+    addNewActivityWithParams,
+    null
+  );
+  */
 
   return (
     <Card className="max-w-[400px]">
@@ -36,12 +46,12 @@ export default function NewActivity() {
             name="name"
             placeholder="Enter a name"
             isRequired
-            disabled={pending}
+            disabled={isPending.pending}
           />
           <Textarea
             name="description"
             placeholder="Enter a description"
-            disabled={pending}
+            disabled={isPending.pending}
           />
           <div className="flex gap-4 items-center">
             <Input
@@ -49,7 +59,7 @@ export default function NewActivity() {
               placeholder="Minimum session time"
               type="number"
               inputMode="numeric"
-              disabled={pending}
+              disabled={isPending.pending}
             />
             <Tabs
               aria-label="MinSessionTimeType"
@@ -73,9 +83,9 @@ export default function NewActivity() {
             color="primary"
             radius="sm"
             size="sm"
-            disabled={pending}
+            disabled={isPending.pending}
           >
-            {pending ? "Adding..." : "Add"}
+            {isPending.pending ? "Adding..." : "Add"}
           </Button>
         </form>
       </CardBody>
