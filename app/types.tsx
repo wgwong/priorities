@@ -62,7 +62,8 @@ export type NewEntryArgs = {
 export type NewActivityArguments = {
   name: string;
   description?: string;
-  minTimePerSession: HoursAndMin;
+  minMinutes: number;
+  minHours: number;
   categoryKeys: string[];
 };
 
@@ -106,14 +107,14 @@ export type TableHeaderType = {
   label: string;
 }[];
 
-export class Activity {
+export type Activity = {
   name: string;
   description?: string;
-  minTimePerSession: HoursAndMin;
+  minutes: number;
+  hours: number;
+};
 
-  constructor({ name, description, minTimePerSession }: NewActivityArguments) {
-    this.name = name;
-    this.description = description;
-    this.minTimePerSession = minTimePerSession;
-  }
-}
+export type KeyedActivity = {
+  key: string;
+  activity: Activity;
+};

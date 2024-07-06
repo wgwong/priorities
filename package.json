@@ -12,7 +12,7 @@
     "@nextui-org/react": "^2.4.1",
     "@vercel/postgres": "^0.8.0",
     "framer-motion": "^11.2.10",
-    "next": "^14.2.3",
+    "next": "^14.2.4",
     "nextui-cli": "^0.3.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

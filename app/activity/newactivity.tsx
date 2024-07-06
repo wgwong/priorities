@@ -1,8 +1,7 @@
-"use client";
-
 // https://github.com/vercel/next.js/issues/65673
 
-import { Key, useState } from "react";
+"use client";
+
 import {
   Button,
   Card,
@@ -10,83 +9,98 @@ import {
   CardHeader,
   Divider,
   Input,
-  Tab,
-  Tabs,
   Textarea,
 } from "@nextui-org/react";
-import { ActivityMinSessionType, MinOrHour } from "./../types";
-import { addNewActivity } from "./actions";
 import { useFormStatus } from "react-dom";
+import { addNewActivity } from "./actions";
+import { useContext } from "react";
+import { ActivityContext } from "../activitycontext";
+import { CategorySelector } from "./categoryselector";
 
 export default function NewActivity() {
-  const [minSessionTimeType, setMinSessionTimeType] =
-    useState<ActivityMinSessionType>("minutes");
+  const activityContext = useContext(ActivityContext);
 
-  const addNewActivityWithParams = addNewActivity.bind(
-    null,
-    minSessionTimeType
-  );
+  function FormComponents() {
+    const formStatus = useFormStatus(); // this needs to be called within a parent form
 
-  const isPending = useFormStatus();
-  /*
-  unavailable until nextjs v.14.3
-  const [formResponse, formAction, isPending] = useActionState(
-    addNewActivityWithParams,
-    null
-  );
-  */
+    /*
+    unavailable until nextjs v.14.3
+    const [formResponse, formAction, isPending] = useActionState(
+      addNewActivityWithParams,
+      null
+    );
+    */
+    return (
+      <>
+        <Input
+          label="Name"
+          name="name"
+          placeholder="Enter a name"
+          isRequired
+          disabled={formStatus.pending}
+        />
+        <Textarea
+          label="Description"
+          name="description"
+          placeholder="Enter a description"
+          disabled={formStatus.pending}
+        />
+        <div className="flex gap-4 items-center">
+          <Input
+            name="minutes"
+            label="Minimum minute(s)"
+            type="number"
+            inputMode="numeric"
+            disabled={formStatus.pending}
+          />
+          <Input
+            name="hours"
+            label="Minimum hour(s)"
+            type="number"
+            inputMode="numeric"
+            disabled={formStatus.pending}
+          />
+        </div>
+        <CategorySelector />
+        <Button
+          type="submit"
+          className="text-tiny"
+          variant="flat"
+          color="primary"
+          radius="sm"
+          size="sm"
+          disabled={formStatus.pending}
+        >
+          {formStatus.pending ? "Adding..." : "Add"}
+        </Button>
+      </>
+    );
+  }
+
+  async function addNewActivityHandler(formData: FormData) {
+    console.log("addNewActivityHandler called formData: ", formData);
+    const keyedActivity = await addNewActivity(formData);
+
+    if (keyedActivity) {
+      console.log(
+        "addNewActivityHandler calling reducer with keyedActivity: ",
+        keyedActivity
+      );
+
+      activityContext.dispatch({
+        type: "upsert",
+        keyedActivity,
+      });
+    }
+  }
 
   return (
     <Card className="max-w-[400px]">
       <CardHeader>Enter a new activity</CardHeader>
       <Divider />
       <CardBody>
-        <form action={addNewActivityWithParams} className="flex flex-col gap-4">
-          <Input
-            name="name"
-            placeholder="Enter a name"
-            isRequired
-            disabled={isPending.pending}
-          />
-          <Textarea
-            name="description"
-            placeholder="Enter a description"
-            disabled={isPending.pending}
-          />
-          <div className="flex gap-4 items-center">
-            <Input
-              name="minsessiontime"
-              placeholder="Minimum session time"
-              type="number"
-              inputMode="numeric"
-              disabled={isPending.pending}
-            />
-            <Tabs
-              aria-label="MinSessionTimeType"
-              selectedKey={minSessionTimeType}
-              onSelectionChange={(key: Key) =>
-                setMinSessionTimeType(key as ActivityMinSessionType)
-              }
-              size="lg"
-              variant="light"
-              radius="md"
-            >
-              {MinOrHour.map((value) => (
-                <Tab className="text-sm" key={value} title={value} />
-              ))}
-            </Tabs>
-          </div>
-          <Button
-            type="submit"
-            className="text-tiny"
-            variant="flat"
-            color="primary"
-            radius="sm"
-            size="sm"
-            disabled={isPending.pending}
-          >
-            {isPending.pending ? "Adding..." : "Add"}
-          </Button>
+        <form action={addNewActivityHandler} className="flex flex-col gap-4">
+          <FormComponents />
         </form>
       </CardBody>
     </Card>

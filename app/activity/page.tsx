@@ -1,20 +1,8 @@
-import { getActivities, queryRowToDataRow } from "./actions";
-import ActivityTable from "./activitytable";
-import NewActivity from "./newactivity";
+import { getActivities } from "./actions";
+import { ActivityWrapper } from "./activitywrapper";
 
 export default async function ActivityPage() {
-  console.log("activity page");
+  const keyedActivities = await getActivities();
 
-  const data = await getActivities();
-
-  const activities = queryRowToDataRow(data);
-
-  console.log("page data: ", activities);
-
-  return (
-    <>
-      <NewActivity />
-      <ActivityTable activities={activities} />
-    </>
-  );
+  return <ActivityWrapper keyedActivities={keyedActivities} />;
 }

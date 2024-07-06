@@ -1,7 +1,12 @@
 import { QueryResultRow } from "@vercel/postgres";
-import { DayOfWeek, DayOfWeekType, HoursAndMin, MinOrHourType } from "./types";
+import {
+  DayOfWeek,
+  DayOfWeekType,
+  HoursAndMin,
+  KeyedActivity,
+  MinOrHourType,
+} from "./types";
 import { Selection } from "@nextui-org/react";
-import { ActivityDataRow } from "./activity/activitytable";
 
 export const sleep = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -57,16 +62,18 @@ export function isSelectionEmpty(selection: Selection | undefined) {
   return selection == null || selection == "all" || selection.size == 0;
 }
 
-export function queryRowToDataRow(
+export function queryRowToKeyedActivity(
   queryRow: QueryResultRow[]
-): ActivityDataRow[] {
+): KeyedActivity[] {
   const activities = queryRow.map((row) => {
-    const activity: ActivityDataRow = {
+    const activity: KeyedActivity = {
       key: row.id as string,
-      name: row.name as string,
-      description: row.description as string,
-      minutes: row.minutes as number,
-      hours: row.hours as number,
+      activity: {
+        name: row.name as string,
+        description: row.description as string,
+        minutes: row.minutes as number,
+        hours: row.hours as number,
+      },
     };
     return activity;
   });

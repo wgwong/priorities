@@ -1,15 +1,14 @@
 "use server";
 
-import { ActivityMinSessionType } from "../types";
-import { getHoursAndMin, queryRowToDataRow, sleep } from "../utils";
+import { queryRowToKeyedActivity, sleep } from "../utils";
 import { sql } from "@vercel/postgres";
 import { unstable_noStore as noStore } from "next/cache";
-import { ActivityDataRow } from "./activitytable";
+import { KeyedActivity } from "../types";
 
 /*
   https://postgresapp.com/
 
-  psql "postgres://default:uvtPYfTC73aL@ep-purple-cherry-a4gxtc1y.us-east-1.aws.neon.tech:5432/verceldb?sslmode=require"
+  psql "postgres://default:************@ep-purple-cherry-a4gxtc1y.us-east-1.aws.neon.tech:5432/verceldb?sslmode=require"
 
   CREATE TABLE IF NOT EXISTS activities (
     id int GENERATED ALWAYS AS IDENTITY,
@@ -25,10 +24,16 @@ import { ActivityDataRow } from "./activitytable";
     return name != null && minSessionTime != null && !isNaN(minSessionTime);
   }*/
 
+export const getActivities = async () => {
+  noStore();
+  const { rows } = await sql`SELECT * FROM activities;`;
+
+  return queryRowToKeyedActivity(rows);
+};
+
 export async function addNewActivity(
-  minSessionTimeType: ActivityMinSessionType,
-  formData: any
-) {
+  formData: FormData
+): Promise<KeyedActivity | null> {
   /*
     if (!isFormFilled()) {
       throw Error("not all form values are filled");
@@ -37,40 +42,59 @@ export async function addNewActivity(
 
   // do some validation here
 
-  let activity: ActivityDataRow[] = [];
-
   try {
-    const name = formData.get("name");
-    const description = formData.get("description");
-    const minTimePerSession = getHoursAndMin(
-      formData.get("minsessiontime"),
-      minSessionTimeType
-    );
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+
+    const maybeMinutes = formData.get("minutes") ?? 0;
+    const minutes =
+      maybeMinutes && Number.isNaN(maybeMinutes) ? 0 : (maybeMinutes as number);
+    const maybeHours = formData.get("hours") ?? 0;
+    const hours =
+      maybeHours && Number.isNaN(maybeHours) ? 0 : (maybeHours as number);
 
     console.log(
       "addNewActivity: name: ",
       name,
       ", description: ",
       description,
-      ", minTimePerSession: ",
-      minTimePerSession
+      ", minutes: ",
+      minutes,
+      ", hours: ",
+      hours
     );
 
-    await sql`INSERT INTO activities (name, description, minutes, hours) VALUES (${name}, ${description}, ${minTimePerSession.minutes}, ${minTimePerSession.hours});`;
+    const { rows } =
+      await sql`INSERT INTO activities (name, description, minutes, hours) VALUES
+        (${name}, ${description}, ${minutes}, ${hours})
+        RETURNING id, name, description, minutes, hours;
+        `;
+    const row = rows[0];
+    const activityRow: KeyedActivity = {
+      key: row["id"],
+      activity: {
+        name: row["name"],
+        description: row["description"],
+        minutes: row["minutes"],
+        hours: row["hours"],
+      },
+    };
+    return activityRow;
   } catch (error) {
     console.error(error);
-    //NextResponse.json({ status: 500 });
   }
-  console.log("addNewActivity finished");
-  //return NextResponse.json({ status: 200 });
+  return null;
 }
 
-export const getActivities = async () => {
-  noStore();
-  const { rows } = await sql`SELECT * FROM activities;`;
-
-  console.log("getActivities rows: ", rows);
-
-  return rows;
-};
-export { queryRowToDataRow };
+export async function deleteActivity(key: string): Promise<boolean> {
+  try {
+    const { rows } = await sql`DELETE FROM activities WHERE id = ${key}
+        RETURNING id;
+        `;
+    console.log("deleteActivity deleted rows: ", rows);
+    return rows.length > 0;
+  } catch (error) {
+    console.error(error);
+  }
+  return false;
+}

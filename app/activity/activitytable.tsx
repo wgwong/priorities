@@ -17,9 +17,15 @@ import { Key } from "@react-types/shared";
 import { DeleteIcon } from "../icons/deleteicon";
 import { EditIcon } from "../icons/editicon";
 import { getStringFromHoursAndMin } from "../utils";
-import { Activity, NewActivityArguments, TableHeaderType } from "../types";
+import {
+  Activity,
+  KeyedActivity,
+  NewActivityArguments,
+  TableHeaderType,
+} from "../types";
 import { EyeIcon } from "../icons/eyeicon";
-import { getActivities } from "./actions";
+import { deleteActivity, getActivities } from "./actions";
+import { ActivityContext } from "../activitycontext";
 //import { EntryContext } from "./EntryContext";
 //import { ActivityContext } from "./ActivityContext";
 
@@ -51,61 +57,38 @@ function getTableHeaderFields(): TableHeaderType {
   ];
 }
 
-export type ActivityTableProps = {
-  activities: ActivityDataRow[];
-};
-
-export type ActivityDataRow = {
-  key: string;
-  name: string;
-  description: string;
-  minutes: number;
-  hours: number;
-};
-
 // https://nextui.org/docs/components/table
-export default function ActivityTable(props: ActivityTableProps) {
-  const { activities } = props;
-
-  //const activityContext = useContext(ActivityContext);
+export default function ActivityTable() {
+  const activityContext = useContext(ActivityContext);
   //console.log("ActivityTable activities: ", activityContext.state);
 
-  //const activities = await getActivities();
-  /*
-  const activities = data.map((row) => {
-    const args: NewActivityArguments = {
-      name: row.name,
-      description: row.description,
-      minTimePerSession: { hours: row.hours, minutes: row.minutes },
-      categoryKeys: [],
-    };
-
-    return new Activity(args);
-  });
-  */
-  console.log(" activities: ", activities);
-
   const columns = getTableHeaderFields();
-  const rows: ActivityTableRow[] = activities.map((row) => {
-    return {
-      key: row.key,
-      name: row.name,
-      description: row.description ?? "",
-      minSessionTime: getStringFromHoursAndMin({
-        minutes: row.minutes,
-        hours: row.hours,
-      }),
-    };
-  });
+  const rows: ActivityTableRow[] = activityContext.state.map(
+    ({ key, activity }) => {
+      return {
+        key,
+        name: activity.name,
+        description: activity.description ?? "",
+        minSessionTime: getStringFromHoursAndMin({
+          minutes: activity.minutes,
+          hours: activity.hours,
+        }),
+      };
+    }
+  );
 
-  const deleteActivity = (key: string) => {
+  const deleteActivityHandler = async (key: string) => {
     console.log("deleting activity key: ", key);
-    /*
-    activityContext.dispatch({
-      type: "del",
-      key: key,
-    });
-    */
+
+    const deleted = await deleteActivity(key);
+
+    console.log("deleteActivityHandler deleted: ", deleted);
+    if (deleted) {
+      activityContext.dispatch({
+        type: "del",
+        key: key,
+      });
+    }
   };
 
   const renderCell = (row: ActivityTableRow, columnKey: Key) => {
@@ -125,7 +108,7 @@ export default function ActivityTable(props: ActivityTableProps) {
           <Tooltip color="danger" content="Delete activity">
             <span
               className="text-lg text-danger cursor-pointer active:opacity-50"
-              onClick={() => deleteActivity(row.key)}
+              onClick={() => deleteActivityHandler(row.key)}
             >
               <DeleteIcon />
             </span>
