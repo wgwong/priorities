@@ -3,7 +3,7 @@
 import { queryRowToKeyedActivity, sleep } from "../utils";
 import { sql } from "@vercel/postgres";
 import { unstable_noStore as noStore } from "next/cache";
-import { KeyedActivity } from "../types";
+import { CategorySelectorTag, KeyedActivity } from "../types";
 
 /*
   https://postgresapp.com/
@@ -16,6 +16,13 @@ import { KeyedActivity } from "../types";
     description varchar,
     minutes int,
     hours int
+  );
+
+  CREATE TABLE IF NOT EXISTS categories (
+    id int GENERATED ALWAYS AS IDENTITY,
+    name varchar UNIQUE,
+    description varchar,
+    activityIds varchar[]
   );
 */
 
@@ -31,28 +38,54 @@ export const getActivities = async () => {
   return queryRowToKeyedActivity(rows);
 };
 
-export async function addNewActivity(
-  formData: FormData
-): Promise<KeyedActivity | null> {
+type AddNewActivityArgs = {
+  name: string;
+  description?: string;
+  minutes: number;
+  hours: number;
+  tags: CategorySelectorTag[];
+};
+
+async function addNewCategories(
+  activityId: string,
+  tags: CategorySelectorTag[]
+) {
+  console.log("addNewCategories: ", tags);
+  // vercel doesn't support pre-templated bulk inserts without some nasty workarounds,
+  // so we will insert 1-by-1
+  try {
+    tags.forEach(async (tag) => {
+      console.log("tag: ", tag);
+      const { rows } = await sql`INSERT into categories as c (name, activityIds)
+    VALUES (${tag.name}, ARRAY[${activityId}])
+    ON CONFLICT (name)
+    DO UPDATE SET
+    activityIds = EXCLUDED.activityIds || c.activityIds
+    RETURNING id, name, activityIds`;
+      console.log("categoryRows: ", rows);
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+export async function addNewActivity({
+  name,
+  description,
+  minutes,
+  hours,
+  tags,
+}: AddNewActivityArgs): //formData: FormData
+Promise<KeyedActivity | null> {
   /*
     if (!isFormFilled()) {
       throw Error("not all form values are filled");
     }
     */
 
-  // do some validation here
+  // TODO do some validation here
 
   try {
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
-
-    const maybeMinutes = formData.get("minutes") ?? 0;
-    const minutes =
-      maybeMinutes && Number.isNaN(maybeMinutes) ? 0 : (maybeMinutes as number);
-    const maybeHours = formData.get("hours") ?? 0;
-    const hours =
-      maybeHours && Number.isNaN(maybeHours) ? 0 : (maybeHours as number);
-
     console.log(
       "addNewActivity: name: ",
       name,
@@ -61,7 +94,11 @@ export async function addNewActivity(
       ", minutes: ",
       minutes,
       ", hours: ",
-      hours
+      hours,
+      ", tags:",
+      JSON.stringify(tags),
+      ", tag length: ",
+      tags.length
     );
 
     const { rows } =
@@ -79,6 +116,9 @@ export async function addNewActivity(
         hours: row["hours"],
       },
     };
+
+    await addNewCategories(activityRow.key, tags);
+
     return activityRow;
   } catch (error) {
     console.error(error);

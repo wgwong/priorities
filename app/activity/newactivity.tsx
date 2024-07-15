@@ -13,12 +13,17 @@ import {
 } from "@nextui-org/react";
 import { useFormStatus } from "react-dom";
 import { addNewActivity } from "./actions";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { ActivityContext } from "../activitycontext";
-import { CategorySelector } from "./categoryselector";
+import { CategorySelector } from "../category/categoryselector";
+import { CategorySelectorTag } from "../types";
+//import { CategoryContext } from "../categorycontext";
 
 export default function NewActivity() {
   const activityContext = useContext(ActivityContext);
+  //const categoryContext = useContext(CategoryContext);
+
+  const [tags, setTags] = useState<CategorySelectorTag[]>([]);
 
   function FormComponents() {
     const formStatus = useFormStatus(); // this needs to be called within a parent form
@@ -61,7 +66,7 @@ export default function NewActivity() {
             disabled={formStatus.pending}
           />
         </div>
-        <CategorySelector />
+        <CategorySelector tags={tags} setTags={setTags} />
         <Button
           type="submit"
           className="text-tiny"
@@ -79,7 +84,43 @@ export default function NewActivity() {
 
   async function addNewActivityHandler(formData: FormData) {
     console.log("addNewActivityHandler called formData: ", formData);
-    const keyedActivity = await addNewActivity(formData);
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+
+    let minutes = 0,
+      hours = 0;
+    const maybeMinutes = formData.get("minutes") ?? 0;
+    const maybeHours = formData.get("hours") ?? 0;
+
+    if (
+      !(maybeMinutes instanceof File) &&
+      maybeMinutes !== "" &&
+      !Number.isNaN(maybeMinutes)
+    ) {
+      minutes = maybeMinutes as number;
+    }
+    if (
+      !(maybeHours instanceof File) &&
+      maybeHours !== "" &&
+      !Number.isNaN(maybeHours)
+    ) {
+      hours = maybeHours as number;
+    }
+
+    console.log(
+      "addNewActivityHandler tags: ",
+      JSON.stringify(tags),
+      ", length: ",
+      tags.length
+    );
+
+    const keyedActivity = await addNewActivity({
+      name,
+      description,
+      minutes,
+      hours,
+      tags,
+    });
 
     if (keyedActivity) {
       console.log(

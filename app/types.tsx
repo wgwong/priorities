@@ -114,7 +114,22 @@ export type Activity = {
   hours: number;
 };
 
+export type Category = {
+  name: string;
+  //type: CategoryType
+  activityIds: string[];
+};
+
 export type KeyedActivity = {
   key: string;
   activity: Activity;
+};
+
+export type KeyedCategory = {
+  key: string;
+  category: Category;
+};
+
+export type CategorySelectorTag = {
+  name: string;
 };
